@@ -19,9 +19,11 @@ connection = psycopg2.connect(user=os.environ['USER'],
 
 results = spotify.current_user_playing_track()  # may contain a typeError so CATCH it within code.
 
-value = ""
+max_songs_to_import = int(input("What is the number of songs you want to import? "))
 
 count = 0
+
+# TODO: MAKE the 'get_functions' REUSABLE RATHER THAN JUST ON INITIAL USE.
 
 
 def import_current_song(artist, song, genre, imported):  # INSERTS TO spotifynstuff database
@@ -41,24 +43,18 @@ def import_current_song(artist, song, genre, imported):  # INSERTS TO spotifynst
             imported = True
             global count
             count += 1
-            if count == 5:
+            if count == max_songs_to_import:
+                print("Shutting down database")
                 cursor.close()
                 connection.close()
-                print("posty closed.")
+                print("Database closed.")
             else:
+                print("Song is alreday in the current listening track. No need for import. (:")
                 check_if_song_skipped(song, imported)
 
         except (Exception, psycopg2.Error) as error:
+            # TODO: IF ERROR =  'NoneType' object is not subscriptable, TRY TO REESTABLISH THE CONNECTION....
             print("Error while connecting to PostgreSQL", error)
-
-
-
-
-# finally:
-#     if connection:
-#         cursor.close()
-#         connection.close()
-#         print("PostgreSQL connection is closed")
 
 
 def get_single_artist():
@@ -98,7 +94,7 @@ def get_artist_info():
 def check_if_song_skipped(song_name, is_imported):
     time_to_fin = 90000  # ms to compare with json payload
 
-    time.sleep(13)  # wait 13 before next request
+    time.sleep(13)
     spotify1 = spotipy.Spotify(
         auth_manager=SpotifyOAuth(client_id=os.environ['SPOTIPY_CLIENT_ID'],  # create a new endpoint everytime
                                   client_secret=os.environ['SPOTIPY_CLIENT_SECRET'],
@@ -107,11 +103,11 @@ def check_if_song_skipped(song_name, is_imported):
                                         "user-read-playback-state"))
 
     curr_time = spotify1.current_playback()
-    results1 = spotify1.current_user_playing_track()  # json payload
+    track_playing = spotify1.current_user_playing_track()  # json payload
 
-    curr_song = results1["item"]["name"]
+    curr_song = track_playing["item"]["name"]
 
-    artists = results1["item"]["artists"]  # gets artist results from the JSON payload
+    artists = track_playing["item"]["artists"]  # gets artist results from the JSON payload
 
     this_id = get_artist_id(artists)
 
@@ -119,13 +115,13 @@ def check_if_song_skipped(song_name, is_imported):
     print("checking type: ")
     print(type(genres))
     artist_name = artists[0]["name"]
-    if song_name != results1["item"]["name"]:
+    if song_name != curr_song:
         print("Songs do not match terminating......")
         is_imported = False
         check_if_song_skipped(curr_song, is_imported)
 
-    elif (time_to_fin <= curr_time["progress_ms"]) and (song_name == results1["item"]["name"]):
-        print("songs are are ready to import")
+    elif (time_to_fin <= curr_time["progress_ms"]) and (song_name == curr_song):
+        print("Checking if song needs to be imported")
         import_current_song(artist_name, curr_song, genres, is_imported)
 
     else:
