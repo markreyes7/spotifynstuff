@@ -1,40 +1,40 @@
 import time
-import threading
 
 
-class TimerError(Exception):
-    """A custom exception used to report errors in use of Timer class"""
+class Timer():
 
-
-class Timer(threading.Thread):
     def __init__(self):
-        super().__init__()
-        self._start_time = 10
+        self.start_time = time.time()
 
     def start(self):
-        """Start a new timer"""
-        print("Starting")
-        is_finished = False;
-        curr_time = self._start_time
-        while curr_time:
-            if curr_time == 0:
-                is_finished = True
-                return is_finished
-            print(curr_time)
-            time.sleep(1)
-            curr_time -= 1
-        return is_finished
+        last_time = self.start_time
+        lap_num = 1
+        value = ""
+
+        print("Press ENTER for each lap.\nType Q and press ENTER to stop.")
+
+        while value.lower() != "q":
+            # Input for the ENTER key press
+            value = input()
+
+            # The current lap-time
+            lap_time = round((time.time() - last_time), 2)
+
+            # Total time elapsed since the timer started
+            total_time = round((time.time() - self.start_time), 2)
+
+            # Printing the lap number, lap-time, and total time
+            print("Lap No. " + str(lap_num))
+            print("Total Time: " + str(total_time))
+            print("Lap Time: " + str(lap_time))
+
+            print("*" * 20)
+
+            # Updating the previous total time and lap number
+            last_time = time.time()
+            lap_num += 1
+
+        print("Exercise complete!")
 
     def stop(self):
         """Stop the timer, and report the elapsed time"""
-
-
-t = Timer()
-run = True
-while run:
-    if not t.start():
-        t.start()
-    else:
-        run = False
-
-
