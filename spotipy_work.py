@@ -6,10 +6,12 @@ import time
 from artist import Artist
 from spotipy.oauth2 import SpotifyOAuth
 
+
 spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=os.environ['SPOTIPY_CLIENT_ID'],
                                                     client_secret=os.environ['SPOTIPY_CLIENT_SECRET'],
                                                     redirect_uri='https://google.com/',
                                                     scope="user-read-currently-playing"))
+
 
 connection = psycopg2.connect(user=os.environ['USER'],
                               password=os.environ['PASSWORD'],
@@ -17,26 +19,30 @@ connection = psycopg2.connect(user=os.environ['USER'],
                               port=os.environ['PORT'],
                               database=os.environ['DATABASE'])
 
+
+
 results = spotify.current_user_playing_track()  # may contain a typeError so CATCH it within code.
 
+print("here we are now ")
 max_songs_to_import = int(input("What is the number of songs you want to import? "))
 
 count = 0
 
+
 # TODO: MAKE the 'get_functions' REUSABLE RATHER THAN JUST ON INITIAL USE.
 
 
-def import_current_song(artist, song, genre, imported):  # INSERTS TO spotifynstuff database
+def import_current_song(artist, song, genre, listened, imported, artist_id):  # INSERTS TO spotifynstuff database
 
     if imported:
         check_if_song_skipped(song, imported)
     else:
         try:
             cursor = connection.cursor()
-            postgres_insert_query = """INSERT INTO artist (artist_name, song_name, make_date ,listened, genre) VALUES (
-            %s, %s, %s, %s, %s) """
+            postgres_insert_query = """INSERT INTO artist (artist_name, song_name, make_date ,listened, genre, artist_id) VALUES (
+            %s, %s, %s, %s, %s, %s) """
             song_listen_time = datetime.datetime.now()
-            record_to_insert = (artist, song, song_listen_time, True, genre)
+            record_to_insert = (artist, song, song_listen_time, listened, genre, artist_id)
             cursor.execute(postgres_insert_query, record_to_insert)
             connection.commit()
             print("The artist was inserted")
@@ -49,12 +55,17 @@ def import_current_song(artist, song, genre, imported):  # INSERTS TO spotifynst
                 connection.close()
                 print("Database closed.")
             else:
-                print("Song is alreday in the current listening track. No need for import. (:")
+                print("Song is already in the current listening track. No need for import. (:")
                 check_if_song_skipped(song, imported)
 
         except (Exception, psycopg2.Error) as error:
+
             # TODO: IF ERROR =  'NoneType' object is not subscriptable, TRY TO REESTABLISH THE CONNECTION....
             print("Error while connecting to PostgreSQL", error)
+
+
+def reestablishConnection():
+    return
 
 
 def get_single_artist():
@@ -122,7 +133,7 @@ def check_if_song_skipped(song_name, is_imported):
 
     elif (time_to_fin <= curr_time["progress_ms"]) and (song_name == curr_song):
         print("Checking if song needs to be imported")
-        import_current_song(artist_name, curr_song, genres, is_imported)
+        import_current_song(artist_name, curr_song, genres, True, is_imported, this_id)
 
     else:
         is_imported = False
@@ -147,10 +158,9 @@ def get_genres(artist_id):
     return genres
 
 
-# TODO: Keep the program running after import is made.
-#   Checking if the song is skipped
-#   - IF SONG IS SKIPPED THEN BEGIN NEXT IMPORT CHECKING MODE.
-#   - IF THE SONG IS STILL PLAYING WAIT UNTIL IT I
-
-
 check_if_song_skipped(get_song_name(), False)
+
+
+sql_SELECT_QUERY = "SELECT artist_name FROM artist ORDER BY RANDOM() LIMIT 1;"
+
+
