@@ -6,7 +6,6 @@ from spotipy.oauth2 import SpotifyOAuth
 import random
 from pprint import pprint
 
-
 scope = 'playlist-modify-public playlist-modify-private'
 
 spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=os.environ['SPOTIPY_CLIENT_ID'],
@@ -92,10 +91,10 @@ def delete_from_playlist():
     track = items[to_delete - 1]['track']
     song_to_remove = track['uri']
 
-
     spotify.playlist_remove_specific_occurrences_of_items(os.environ['PLAYLIST_ID'],
                                                           [{"uri": song_to_remove, "positions": [to_delete - 1]}])
     import_deleted_to_db(track)
+
 
 def get_genres(artist_id):
     curr_artist = spotify.artist(artist_id)
@@ -110,7 +109,7 @@ def import_deleted_to_db(track):
     artist_name = track['artists'][0]['name']
     print("name is " + artist_name)
     artist_id = track['artists'][0]['id']
-    print("id is "+ artist_id)
+    print("id is " + artist_id)
     genres = get_genres(artist_id)
     song_name = track['name']
     print("song was " + song_name)
@@ -121,6 +120,4 @@ def import_deleted_to_db(track):
     connection.close()
 
 
-
-
-import_random_song()
+print(5/2)

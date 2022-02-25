@@ -5,13 +5,16 @@ import datetime
 import time
 from artist import Artist
 from spotipy.oauth2 import SpotifyOAuth
+from pprint import pprint
+from artist_count import artists_of_the_week
+from collections import Counter
 
+import json
 
 spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=os.environ['SPOTIPY_CLIENT_ID'],
                                                     client_secret=os.environ['SPOTIPY_CLIENT_SECRET'],
                                                     redirect_uri='https://google.com/',
                                                     scope="user-read-currently-playing"))
-
 
 connection = psycopg2.connect(user=os.environ['USER'],
                               password=os.environ['PASSWORD'],
@@ -19,11 +22,10 @@ connection = psycopg2.connect(user=os.environ['USER'],
                               port=os.environ['PORT'],
                               database=os.environ['DATABASE'])
 
-
-
 results = spotify.current_user_playing_track()  # may contain a typeError so CATCH it within code.
 
 print("here we are now ")
+
 max_songs_to_import = int(input("What is the number of songs you want to import? "))
 
 count = 0
@@ -32,17 +34,20 @@ count = 0
 # TODO: MAKE the 'get_functions' REUSABLE RATHER THAN JUST ON INITIAL USE.
 
 
-def import_current_song(artist, song, genre, listened, imported, artist_id):  # INSERTS TO spotifynstuff database
+def import_current_song(artist, song, genre, listened, imported, artist_id,):  # INSERTS TO spotifynstuff database
 
     if imported:
         check_if_song_skipped(song, imported)
     else:
         try:
+
             cursor = connection.cursor()
-            postgres_insert_query = """INSERT INTO artist (artist_name, song_name, make_date ,listened, genre, artist_id) VALUES (
-            %s, %s, %s, %s, %s, %s) """
+            postgres_insert_query = """INSERT INTO artist (artist_name, song_name, make_date ,listened, genre, 
+            artist_id, time_listened) VALUES ( %s, %s, %s, %s, %s, %s, %s) """
             song_listen_time = datetime.datetime.now()
-            record_to_insert = (artist, song, song_listen_time, listened, genre, artist_id)
+            this_time = datetime.datetime.now()
+            current_time = this_time.strftime("%H:%M:%S")
+            record_to_insert = (artist, song, song_listen_time, listened, genre, artist_id, current_time)
             cursor.execute(postgres_insert_query, record_to_insert)
             connection.commit()
             print("The artist was inserted")
@@ -65,6 +70,10 @@ def import_current_song(artist, song, genre, listened, imported, artist_id):  # 
 
 
 def reestablishConnection():
+    return
+
+
+def get_recent_import():
     return
 
 
@@ -142,6 +151,11 @@ def check_if_song_skipped(song_name, is_imported):
         check_if_song_skipped(song_name, is_imported)
 
 
+def max_songs():
+    num_of_songs = int(input("What is the number of songs you want to import? "))
+    return num_of_songs
+
+
 def check_length_of_artists(artist_list):
     if artist_list >= 2:
         print("Artists length is long")
@@ -158,9 +172,58 @@ def get_genres(artist_id):
     return genres
 
 
+def search_db_artists():
+    postgres_insert_query = "SELECT artist_name FROM artist WHERE make_date  BETWEEN NOW()::DATE-EXTRACT(DOW FROM NOW(" \
+                            "))::INTEGER-7 AND NOW()::DATE-EXTRACT(DOW from NOW())::INTEGER "
+    cursor = connection.cursor()
+    cursor.execute(postgres_insert_query)
+    value = cursor.fetchall()
+    array = []
+    counter = 0
+    for i in value:
+        array.append(i[0])
+    array.sort()
+    print(array)
+
+    while counter < len(array) - 1:
+        curr = array[counter]
+        new = ""
+        inner_count = 0
+
+        while curr != new:
+            if curr == array[counter + 1]:
+                print("dupy")
+                counter += 1
+                inner_count += 1
+                artists_of_the_week[curr] = inner_count
+            else:
+                artists_of_the_week[curr] = inner_count + 1
+                new = curr
+                print("no")
+                counter += 1
+                inner_count = 0
+
+
+def search_genre_of_week():
+    postgres_insert_query = "SELECT genre FROM artist WHERE make_date  BETWEEN NOW()::DATE-EXTRACT(DOW FROM NOW(" \
+                            "))::INTEGER-7 AND NOW()::DATE-EXTRACT(DOW from NOW())::INTEGER"
+    cnt = Counter()
+    cursor = connection.cursor()
+    cursor.execute(postgres_insert_query)
+    value = cursor.fetchall()
+    array = []
+
+    for i in value:
+        array.append(i[0])  # get the tuple out and make a 2D array
+
+    for index in array:
+        for genre in index:
+            cnt[genre] += 1
+
+    print(array)
+    new_dict = dict(cnt.most_common())
+    json_object = json.dumps(new_dict, indent=4)
+    return json_object
+
+
 check_if_song_skipped(get_song_name(), False)
-
-
-sql_SELECT_QUERY = "SELECT artist_name FROM artist ORDER BY RANDOM() LIMIT 1;"
-
-
