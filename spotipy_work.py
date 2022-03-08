@@ -34,7 +34,7 @@ count = 0
 # TODO: MAKE the 'get_functions' REUSABLE RATHER THAN JUST ON INITIAL USE.
 
 
-def import_current_song(artist, song, genre, listened, imported, artist_id,):  # INSERTS TO spotifynstuff database
+def import_current_song(artist, song, genre, listened, imported, artist_id, ):  # INSERTS TO spotifynstuff database
 
     if imported:
         check_if_song_skipped(song, imported)
@@ -192,14 +192,12 @@ def search_db_artists():
 
         while curr != new:
             if curr == array[counter + 1]:
-                print("dupy")
                 counter += 1
                 inner_count += 1
                 artists_of_the_week[curr] = inner_count
             else:
                 artists_of_the_week[curr] = inner_count + 1
                 new = curr
-                print("no")
                 counter += 1
                 inner_count = 0
 
@@ -223,6 +221,31 @@ def search_genre_of_week():
     print(array)
     new_dict = dict(cnt.most_common())
     json_object = json.dumps(new_dict, indent=4)
+    return json_object
+
+
+
+def search_artist_of_db():
+    postgres_insert_query = "SELECT artist_name FROM artist;"
+    cnt = Counter()
+    cursor = connection.cursor()
+    cursor.execute(postgres_insert_query)
+    value = cursor.fetchall()
+    array = []
+
+    for i in value:
+        array.append(i[0])  # get the tuple out and make a 2D array
+
+    for index in array:
+        cnt[index] += 1
+    # for index in array:
+    #     for genre in index:
+    #         cnt[genre] += 1
+
+    print(array)
+    new_dict = dict(cnt.most_common())
+    json_object = json.dumps(new_dict, indent=4)
+    print(json_object)
     return json_object
 
 
