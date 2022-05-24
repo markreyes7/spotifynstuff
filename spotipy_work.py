@@ -34,7 +34,8 @@ count = 0
 # TODO: MAKE the 'get_functions' REUSABLE RATHER THAN JUST ON INITIAL USE.
 
 
-def import_current_song(artist, song, genre, listened, imported, artist_id, ):  # INSERTS TO spotifynstuff database
+def import_current_song(artist, feature_artist, song, genre, listened, imported,
+                        artist_id, ):  # INSERTS TO spotifynstuff database
 
     if imported:
         check_if_song_skipped(song, imported)
@@ -42,12 +43,13 @@ def import_current_song(artist, song, genre, listened, imported, artist_id, ):  
         try:
 
             cursor = connection.cursor()
-            postgres_insert_query = """INSERT INTO artist (artist_name, song_name, make_date ,listened, genre, 
-            artist_id, time_listened) VALUES ( %s, %s, %s, %s, %s, %s, %s) """
+            postgres_insert_query = """INSERT INTO artist (artist_name, feature_artist, song_name, make_date ,listened, genre, 
+            artist_id, time_listened) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s) """
             song_listen_time = datetime.datetime.now()
             this_time = datetime.datetime.now()
             current_time = this_time.strftime("%H:%M:%S")
-            record_to_insert = (artist, song, song_listen_time, listened, genre, artist_id, current_time)
+            record_to_insert = (
+            artist, feature_artist, song, song_listen_time, listened, genre, artist_id, current_time)
             cursor.execute(postgres_insert_query, record_to_insert)
             connection.commit()
             print("The artist was inserted")
@@ -64,13 +66,14 @@ def import_current_song(artist, song, genre, listened, imported, artist_id, ):  
                 check_if_song_skipped(song, imported)
 
         except (Exception, psycopg2.Error) as error:
-
-            # TODO: IF ERROR =  'NoneType' object is not subscriptable, TRY TO REESTABLISH THE CONNECTION....
             print("Error while connecting to PostgreSQL", error)
+            reestablishConnection()
+            check_if_song_skipped(get_song_name(), False)
 
 
 def reestablishConnection():
-    return
+    print("Reestablishing connection")
+    return connection
 
 
 def get_recent_import():
@@ -92,10 +95,15 @@ def get_single_artist():
 def get_feature():
     artists = results["item"]["artists"]
     artists_in_song = []
-    for i in artists:
-        artists_in_song.append(i["name"])
 
-    return len(artists_in_song)
+    if len(artists) == 1:
+        print("Only one banger")
+
+    for artist in artists:
+        artists_in_song.append(artist["name"])
+        print(artist["name"])
+
+    return artists_in_song
 
 
 def get_song_name():
@@ -131,6 +139,8 @@ def check_if_song_skipped(song_name, is_imported):
 
     this_id = get_artist_id(artists)
 
+    feature_artist = get_feature()
+
     genres = get_genres(this_id)
     print("checking type: ")
     print(type(genres))
@@ -142,7 +152,8 @@ def check_if_song_skipped(song_name, is_imported):
 
     elif (time_to_fin <= curr_time["progress_ms"]) and (song_name == curr_song):
         print("Checking if song needs to be imported")
-        import_current_song(artist_name, curr_song, genres, True, is_imported, this_id)
+        get_feature()
+        import_current_song(artist_name, feature_artist, curr_song, genres, True, is_imported, this_id)
 
     else:
         is_imported = False
@@ -222,7 +233,6 @@ def search_genre_of_week():
     new_dict = dict(cnt.most_common())
     json_object = json.dumps(new_dict, indent=4)
     return json_object
-
 
 
 def search_artist_of_db():

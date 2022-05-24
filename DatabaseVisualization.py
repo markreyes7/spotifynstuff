@@ -73,6 +73,6 @@ def show_graph_of_artists(lists):
     plt.show()
 
 
-time_frame = set_time_frame()
-list_of_artists = search_artist_of_timeframe(time_frame)
+
+list_of_artists = search_artist_of_timeframe(set_time_frame())
 show_graph_of_artists(list_of_artists)
